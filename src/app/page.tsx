@@ -1,103 +1,111 @@
-import Image from "next/image";
+"use client"; // client componentとして動作
+import { Autocomplete, AutocompleteChangeReason, Box, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
+import { useState } from "react";
+import useCityList from "@/hooks/useCityList";
+import HeaderWeather from "@/components/Header";
+import useSearchWeather from "@/hooks/useSearchWeather";
+import { City } from "./type";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+function App() {
+    const { cityList, loading: isCityListLoading, error: isCityListError } = useCityList(); // {name: string, id: string}[]
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
-}
+    // 地名検索
+    const [searchCity, setSearchCity] = useState<string | "" >("");
+    const { weather, fetchWeatherForecast, loading: isWeatherLoading, error: isWeatherError } = useSearchWeather();
+
+    const handleChange = (
+        event: React.SyntheticEvent, 
+        value: City | null, 
+        reason: string,
+    ) => {
+        if (!value) {
+            throw new Error("値をしゅとくできませんでした");
+        }
+        setSearchCity(value.name);
+    };
+    const handleSearchCity = () => {
+        const target = cityList.find((city) => city.name === searchCity);
+        if (!target) {
+            console.error("該当する都市が見つかりませんでした");
+            return;
+        }
+        fetchWeatherForecast(target.id); 
+    };
+    return (
+        <>  
+            <HeaderWeather />
+            <Box sx={{ paddingTop: "70px", marginX: 1 }}>
+                {isCityListLoading && 
+                    <Typography variant="inherit">
+                        Data Loading...
+                    </Typography>
+                }{isCityListError && 
+                    <Typography variant="subtitle1">
+                        {isCityListError}
+                    </Typography>
+                }
+                <Stack direction="row">
+                    <Autocomplete
+                        options={cityList}
+                        noOptionsText="該当する地名がありません"
+                        getOptionLabel={(option) => option.name}
+                        style={{ width: 300 }}
+                        onChange={handleChange}
+                        renderInput={(params) => 
+                            <TextField {...params} label="地名を入力" margin="normal" />}
+                    />
+                    <Button
+                        variant="outlined"
+                        size="medium"
+                        sx={{ margin: 1 }}
+                        onClick={handleSearchCity}
+                    >今日の天気は？
+                    </Button>
+                </Stack>
+                {/* loading */}
+                {isWeatherLoading && 
+                    <Typography variant="inherit">
+                        天気予報を取得中...
+                    </Typography>
+                }{isWeatherError && 
+                    <Typography variant="inherit">
+                        {isWeatherError}
+                    </Typography>
+                }{weather && (
+                    // 天気予報を横並びで表示
+                    <Stack 
+                        direction="row" 
+                        spacing={2} 
+                        sx={{ overflowX: "auto", padding: 1 }}
+                    >{weather.forecasts.map((day, index) => {
+                        const whatDay = new Date(day.date);
+                        const whatDayNumber = ["日", "月", "火", "水", "木", "金", "土"];
+                        const dayOfWeek = whatDayNumber[whatDay.getDay()];
+                        
+                        return (
+                            <Card key={index} sx={{ maxWidth: 250, minWidth: 200, marginTop: 1, padding: 1 }} >
+                                <CardContent sx={{ textAlign: "center" }}>
+                                    <Typography variant="subtitle1">
+                                        {weather.location?.city || "Unknown"}の天気
+                                    </Typography>
+                                    
+                                    <Typography variant="body1">{day.date}({dayOfWeek})</Typography>
+                                    <Stack direction="row" alignItems="center" spacing={1} justifyContent="center">
+                                        <img src={day.image.url} alt="天気アイコン" width={50} />
+                                        <Stack>
+                                            <Typography variant="caption">最高: {day.temperature.max.celsius}</Typography>
+                                            <Typography variant="caption">最低: {day.temperature.min.celsius}</Typography>
+                                        </Stack>
+                                    </Stack>
+                                    <Typography variant="body1">{day.telop}</Typography>  
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                    </Stack>
+                )}
+            </Box>
+        </>
+    );
+};
+export default App;
